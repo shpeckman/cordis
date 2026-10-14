@@ -435,6 +435,44 @@ Cordis provides specific exception types:
 
 `AggregateHook` exposes the underlying failures through `#errors`.
 
+## Relation to deepseek-harness cordis
+
+Cordis is a Crystal port of the cordis plugin architecture vendored in [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) ([`vendor/cordis`](https://github.com/deepseek-ai/deepseek-harness/tree/master/vendor/cordis), TypeScript; see its [cordis primer](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/cordis-primer.md)). The module layout maps one-to-one:
+
+| Cordis shard | deepseek-harness | Role |
+| --- | --- | --- |
+| `src/cordis/context.cr` | `context.ts` | root/child contexts, `extend`/`isolate`/`intercept` |
+| `src/cordis/service.cr` | `service.ts` | base service class; registers itself on construction |
+| `src/cordis/lifecycle_node.cr` | `fiber.ts` | per-plugin lifecycle state machine and effects |
+| `src/cordis/reflect.cr` | `reflect.ts` | service store: `provide`/`get`/`set`, dependency notification |
+| `src/cordis/registry.cr` | `registry.ts` | plugin registry |
+| `src/cordis/events.cr` | `events.ts` | event bus with dispatch modes |
+| `src/cordis/logger.cr` | `logger.ts` | logger service with intercepted level |
+| `src/cordis/utils.cr` | `utils.ts` | `DisposableList` and shared vocabulary |
+| `src/cordis/errors.cr` | `fiber.ts` (`CordisError`, `ValidationError`) | raiseable error types |
+| `src/cordis/macros.cr` | module augmentation + `@Inject` decorator | typed service accessors |
+
+Shared core: contexts with isolation and per-service interception, services that register themselves on construction, dependency-driven lifecycle nodes (upstream `Fiber` uses `PENDING`/`LOADING`/`ACTIVE`/`FAILED`/`DISPOSED`/`UNLOADING`; the shard adds `SUSPENDED`), effects with reverse-order teardown, strict service reads gated on the provider being active, and `internal/*` events driving dependency refresh.
+
+Where the shard differs:
+
+- **Language idioms** — upstream wraps every context in a JS `Proxy` so any property read resolves services, and augments TS interfaces (`Context`, `Events`) for typing. The shard uses `method_missing` plus the `define_service` macro for typed accessors.
+- **Plugin model** — upstream loads `ctx.plugin(fn | class | { apply }, config)` with standard-schema config validation, `update()`/restart, and HMR through an `internal/update` waterfall. The shard's `RegistryService` is a name→instance map; there is no config schema or reload.
+- **Events** — upstream adds `waterfall` and listener options (`prepend`, `global`, context `filter`); its `bail` is synchronous. The shard's `bail` aliases async `serial`, and it adds `background` (tracked fibers) and timeout-capped `parallel` via `CancellationToken` (upstream has no timeouts).
+- **Reflection** — upstream supports computed `accessor` properties, `mixin` (exposing service members on `ctx`), and a per-service `check` availability predicate. The shard has none of these and instead adds `has?`/`active?`/`registered_names` inspection.
+- **Logger** — upstream is a callable factory for named loggers with exporters, per-level thresholds, a buffer, and printf formatting. The shard is a level-gated wrapper over Crystal's std `Log`.
+- **Cancellation** — the shard's `CancellationToken` exists because Crystal fibers cannot be aborted; upstream relies on promise semantics.
+- **Errors** — upstream raises `CordisError` code strings and `ValidationError`; the shard has an `Errors::*` class hierarchy (`ServiceNotFound`, `DuplicateService`, `AggregateHook`, `DependencyTimeout`, …).
+
+Candidate alignments (ideas, not implemented):
+
+- a `waterfall` dispatch mode
+- listener `prepend` / `global` options
+- a service `check` availability predicate
+- config schema validation
+- `update(config)` reload on `LifecycleNode`
+- named logger facades
+
 ## Examples
 
 Run the basic example:
