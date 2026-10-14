@@ -132,7 +132,7 @@ describe "Cordis improvements" do
     ctx   = Cordis::Context.new
     child = ctx.intercept("logger", "error".as(Cordis::Any))
 
-    child.logger.level.should eq(Cordis::LoggerLevel::ERROR)
-    ctx.logger.level.should eq(Cordis::LoggerLevel::DEBUG)
+    child.logger.level.should eq(Cordis::LoggerService::Level::ERROR)
+    ctx.logger.level.should eq(Cordis::LoggerService::Level::DEBUG)
   end
 end
