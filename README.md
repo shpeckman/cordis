@@ -179,7 +179,7 @@ ctx.database  # DatabaseService
 ctx.database? # DatabaseService?
 ```
 
-The strict getter raises `Cordis::ServiceNotInjectedError` when the service is missing or inactive.
+The strict getter raises `Cordis::Errors::ServiceNotInjected` when the service is missing or inactive.
 
 Dynamic access is also available:
 
@@ -251,7 +251,7 @@ node.effect("database connection") do
 end
 ```
 
-Adding an effect to a disposed or unloading node raises `Cordis::DisposedError`.
+Adding an effect to a disposed or unloading node raises `Cordis::Errors::Disposed`.
 
 If an effect raises, the node moves to `FAILED`, already-started teardowns are run, and `node.last_error` is set. Call `node.retry` after fixing the underlying condition.
 
@@ -341,7 +341,7 @@ ctx.events.bail("pipeline")
 
 - `emit` runs hooks synchronously.
 - `background` runs hooks without blocking.
-- `parallel` runs hooks concurrently and raises `Cordis::AggregateHookError` if any hook fails or times out.
+- `parallel` runs hooks concurrently and raises `Cordis::Errors::AggregateHook` if any hook fails or times out.
 - `serial` runs hooks in order and returns the first non-`nil` result.
 - `bail` delegates to `serial`.
 
@@ -369,7 +369,7 @@ Shut down async event work with:
 ctx.events.shutdown
 ```
 
-After shutdown, async event methods raise `Cordis::DisposedError`.
+After shutdown, async event methods raise `Cordis::Errors::Disposed`.
 
 ### Typed events
 
@@ -424,17 +424,17 @@ ctx.intercept("events", {"timeout_ms" => "250"}.as(Cordis::Any))
 
 Cordis provides specific exception types:
 
-- `Cordis::ServiceNotFoundError`
-- `Cordis::ServiceNotInjectedError`
-- `Cordis::DuplicateServiceError`
-- `Cordis::ServiceNotProvidedError`
-- `Cordis::DependencyTimeoutError`
-- `Cordis::HookExecutionError`
-- `Cordis::AggregateHookError`
-- `Cordis::LifecycleError`
-- `Cordis::DisposedError`
+- `Cordis::Errors::ServiceNotFound`
+- `Cordis::Errors::ServiceNotInjected`
+- `Cordis::Errors::DuplicateService`
+- `Cordis::Errors::ServiceNotProvided`
+- `Cordis::Errors::DependencyTimeout`
+- `Cordis::Errors::HookExecution`
+- `Cordis::Errors::AggregateHook`
+- `Cordis::Errors::Lifecycle`
+- `Cordis::Errors::Disposed`
 
-`AggregateHookError` exposes the underlying failures through `#errors`.
+`AggregateHook` exposes the underlying failures through `#errors`.
 
 ## Examples
 

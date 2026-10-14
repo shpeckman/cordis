@@ -1,42 +1,42 @@
 # src/cordis/lifecycle_node.cr
 module Cordis
-  enum NodeState
-    PENDING
-    LOADING
-    ACTIVE
-    FAILED
-    DISPOSED
-    UNLOADING
-    SUSPENDED
-  end
-
-  class EffectRecord
-    property name     : String?
-    property block    : Proc(Disposable)
-    property teardown : Disposable?
-    property untrack  : Proc(Bool)?
-
-    def initialize(@block : Proc(Disposable), @name : String? = nil)
-    end
-  end
-
   class LifecycleNode
+    enum State
+      PENDING
+      LOADING
+      ACTIVE
+      FAILED
+      DISPOSED
+      UNLOADING
+      SUSPENDED
+    end
+
+    class Effect
+      property name     : String?
+      property block    : Proc(Disposable)
+      property teardown : Disposable?
+      property untrack  : Proc(Bool)?
+
+      def initialize(@block : Proc(Disposable), @name : String? = nil)
+      end
+    end
+
     property uid             : Int32?
     property ctx             : Context
-    property state           : NodeState
+    property state           : State
     property inject          : Array(String)
     property dispose_tasks   : DisposableList
     property last_error      : Exception?
     property dispose_reason  : String?
     property last_transition : Time
 
-    @effects             = Array(EffectRecord).new
+    @effects             = Array(Effect).new
     @disposables         = DisposableList.new
     @dependency_untracks = Array(Disposable).new
 
     def initialize(parent : Context, is_root : Bool = false, inject : Array(String) = Array(String).new)
       @uid                 = 1
-      @effects             = Array(EffectRecord).new
+      @effects             = Array(Effect).new
       @disposables         = DisposableList.new
       @dispose_tasks       = DisposableList.new
       @inject              = inject.dup
@@ -47,10 +47,10 @@ module Cordis
 
       if is_root
         @ctx   = parent
-        @state = NodeState::ACTIVE
+        @state = State::ACTIVE
       else
         @ctx   = parent.extend_context
-        @state = NodeState::PENDING
+        @state = State::PENDING
         @ctx.node = self
         refresh_subscriptions
         update_state
@@ -64,21 +64,21 @@ module Cordis
     end
 
     def retry : Nil
-      return if @state == NodeState::DISPOSED || @state == NodeState::UNLOADING
+      return if @state == State::DISPOSED || @state == State::UNLOADING
       @last_error = nil
-      transition_to(NodeState::PENDING)
+      transition_to(State::PENDING)
       update_state
     end
 
     def effect(name : String? = nil, &block : -> Disposable) : Disposable
-      if @state == NodeState::DISPOSED || @state == NodeState::UNLOADING
-        raise DisposedError.new("Cannot add effect to #{@state.to_s.downcase} lifecycle node")
+      if @state == State::DISPOSED || @state == State::UNLOADING
+        raise Errors::Disposed.new("Cannot add effect to #{@state.to_s.downcase} lifecycle node")
       end
 
-      record = EffectRecord.new(block, name)
+      record = Effect.new(block, name)
       @effects << record
 
-      if @state == NodeState::ACTIVE
+      if @state == State::ACTIVE
         begin
           activate_record(record)
         rescue ex
@@ -105,36 +105,36 @@ module Cordis
     end
 
     def update_state : Nil
-      return if @state == NodeState::DISPOSED || @state == NodeState::UNLOADING
+      return if @state == State::DISPOSED || @state == State::UNLOADING
 
       all_met = dependencies_met?
 
-      if all_met && (@state == NodeState::PENDING || @state == NodeState::SUSPENDED)
-        transition_to(NodeState::LOADING)
+      if all_met && (@state == State::PENDING || @state == State::SUSPENDED)
+        transition_to(State::LOADING)
         begin
           @effects.each { |record| activate_record(record) }
-          transition_to(NodeState::ACTIVE)
+          transition_to(State::ACTIVE)
         rescue ex
           teardown_errors = clear_effect_teardowns
-          error           = teardown_errors.empty? ? ex : AggregateHookError.new([ex] + teardown_errors)
-          transition_to(NodeState::FAILED, error)
+          error           = teardown_errors.empty? ? ex : Errors::AggregateHook.new([ex] + teardown_errors)
+          transition_to(State::FAILED, error)
         end
         emit_update
-      elsif !all_met && (@state == NodeState::ACTIVE || @state == NodeState::LOADING || @state == NodeState::FAILED)
-        transition_to(NodeState::UNLOADING)
+      elsif !all_met && (@state == State::ACTIVE || @state == State::LOADING || @state == State::FAILED)
+        transition_to(State::UNLOADING)
         errors = clear_effect_teardowns
         if errors.empty?
-          transition_to(NodeState::SUSPENDED)
+          transition_to(State::SUSPENDED)
         else
-          transition_to(NodeState::FAILED, AggregateHookError.new(errors))
+          transition_to(State::FAILED, Errors::AggregateHook.new(errors))
         end
         emit_update
       end
     end
 
     def dispose(reason : String = "disposed") : Nil
-      return if @state == NodeState::DISPOSED
-      transition_to(NodeState::UNLOADING)
+      return if @state == State::DISPOSED
+      transition_to(State::UNLOADING)
       @dispose_reason = reason
       @dependency_untracks.each &.call
       @dependency_untracks.clear
@@ -149,8 +149,8 @@ module Cordis
         end
       end
 
-      @last_error = AggregateHookError.new(errors) unless errors.empty?
-      transition_to(NodeState::DISPOSED)
+      @last_error = Errors::AggregateHook.new(errors) unless errors.empty?
+      transition_to(State::DISPOSED)
       emit_update
     end
 
@@ -168,31 +168,31 @@ module Cordis
     end
 
     def pending? : Bool
-      @state == NodeState::PENDING
+      @state == State::PENDING
     end
 
     def loading? : Bool
-      @state == NodeState::LOADING
+      @state == State::LOADING
     end
 
     def active? : Bool
-      @state == NodeState::ACTIVE
+      @state == State::ACTIVE
     end
 
     def suspended? : Bool
-      @state == NodeState::SUSPENDED
+      @state == State::SUSPENDED
     end
 
     def failed? : Bool
-      @state == NodeState::FAILED
+      @state == State::FAILED
     end
 
     def disposed? : Bool
-      @state == NodeState::DISPOSED
+      @state == State::DISPOSED
     end
 
     def unloading? : Bool
-      @state == NodeState::UNLOADING
+      @state == State::UNLOADING
     end
 
     def effect_count : Int32
@@ -206,7 +206,7 @@ module Cordis
     private def refresh_subscriptions : Nil
       @dependency_untracks.each &.call
       @dependency_untracks.clear
-      return if @ctx.root.same?(@ctx) && @state == NodeState::ACTIVE
+      return if @ctx.root.same?(@ctx) && @state == State::ACTIVE
 
       @inject.each do |dep|
         @dependency_untracks << @ctx.root.events.on("internal/update:#{dep}") do |_args|
@@ -224,7 +224,7 @@ module Cordis
       end
     end
 
-    private def activate_record(record : EffectRecord) : Nil
+    private def activate_record(record : Effect) : Nil
       return if record.teardown
       eff_proc = record.block.call
       record.teardown = eff_proc
@@ -249,12 +249,12 @@ module Cordis
 
     private def fail_from_effect(ex : Exception) : Nil
       errors      = clear_effect_teardowns
-      @last_error = errors.empty? ? ex : AggregateHookError.new([ex] + errors)
-      transition_to(NodeState::FAILED, @last_error)
+      @last_error = errors.empty? ? ex : Errors::AggregateHook.new([ex] + errors)
+      transition_to(State::FAILED, @last_error)
       emit_update
     end
 
-    private def transition_to(state : NodeState, error : Exception? = nil) : Nil
+    private def transition_to(state : State, error : Exception? = nil) : Nil
       @state           = state
       @last_transition = Time.utc
       @last_error      = error if error

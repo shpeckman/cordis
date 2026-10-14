@@ -151,13 +151,13 @@ class Cordis::EventsService
         errors << result if result.is_a?(Exception)
       when timeout(max_wait)
         token.cancel
-        errors << DependencyTimeoutError.new("TimeoutError: Hook execution for '#{name}' exceeded timeout")
+        errors << Errors::DependencyTimeout.new("TimeoutError: Hook execution for '#{name}' exceeded timeout")
         break
       end
     end
 
     unregister_token(token)
-    raise AggregateHookError.new(errors) unless errors.empty?
+    raise Errors::AggregateHook.new(errors) unless errors.empty?
   end
 
   def serial(name : String, args : Array(Any) = Array(Any).new, max_wait : Time::Span = default_max_wait) : Any
@@ -197,7 +197,7 @@ class Cordis::EventsService
     when timeout(max_wait)
       token.cancel
       unregister_token(token)
-      raise DependencyTimeoutError.new("TimeoutError: Hook execution for '#{name}' exceeded timeout")
+      raise Errors::DependencyTimeout.new("TimeoutError: Hook execution for '#{name}' exceeded timeout")
     end
   end
 
@@ -230,7 +230,7 @@ class Cordis::EventsService
     end
 
     if pending_total > 0
-      raise DependencyTimeoutError.new("TimeoutError: EventsService shutdown exceeded timeout")
+      raise Errors::DependencyTimeout.new("TimeoutError: EventsService shutdown exceeded timeout")
     end
   end
 
@@ -257,7 +257,7 @@ class Cordis::EventsService
 
   private def ensure_running! : Nil
     if shutdown?
-      raise DisposedError.new("EventsService is shut down")
+      raise Errors::Disposed.new("EventsService is shut down")
     end
   end
 
