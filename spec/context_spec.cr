@@ -12,7 +12,7 @@ describe Cordis::Context do
     ctx = Cordis::Context.new
 
     ctx.root.should eq(ctx)
-    ctx.node.state.should eq(Cordis::NodeState::ACTIVE)
+    ctx.node.state.should eq(Cordis::LifecycleNode::State::ACTIVE)
     ctx.isolate.empty?.should be_true
     ctx.execution_context.should eq(Fiber::ExecutionContext.default)
   end

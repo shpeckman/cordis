@@ -6,7 +6,7 @@ describe Cordis::LifecycleNode do
     ctx  = Cordis::Context.new
     node = Cordis::LifecycleNode.new(ctx)
 
-    node.state.should eq(Cordis::NodeState::ACTIVE)
+    node.state.should eq(Cordis::LifecycleNode::State::ACTIVE)
   end
 
   it "handles effects and state changes on disposal" do
@@ -17,7 +17,7 @@ describe Cordis::LifecycleNode do
     node.effect { -> { value += 1; nil } }
     node.dispose
 
-    node.state.should eq(Cordis::NodeState::DISPOSED)
+    node.state.should eq(Cordis::LifecycleNode::State::DISPOSED)
     value.should eq(1)
   end
 
