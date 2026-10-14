@@ -429,7 +429,6 @@ Cordis provides specific exception types:
 - `Cordis::Errors::DuplicateService`
 - `Cordis::Errors::ServiceNotProvided`
 - `Cordis::Errors::DependencyTimeout`
-- `Cordis::Errors::HookExecution`
 - `Cordis::Errors::AggregateHook`
 - `Cordis::Errors::Lifecycle`
 - `Cordis::Errors::Disposed`

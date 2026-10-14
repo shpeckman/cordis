@@ -19,9 +19,6 @@ module Cordis
     class DependencyTimeout < Error
     end
 
-    class HookExecution < Error
-    end
-
     class AggregateHook < Error
       getter errors : Array(Exception)
 
