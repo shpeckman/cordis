@@ -3,16 +3,16 @@ require "sync/shared"
 require "random/secure"
 
 module Cordis
-  class Impl
-    property name  : String
-    property value : Injectable
-    property node  : LifecycleNode
-
-    def initialize(@name : String, @value : Injectable, @node : LifecycleNode)
-    end
-  end
-
   class ReflectService
+    class Impl
+      property name  : String
+      property value : Injectable
+      property node  : LifecycleNode
+
+      def initialize(@name : String, @value : Injectable, @node : LifecycleNode)
+      end
+    end
+
     protected property store : Sync::Shared(Hash(String, Impl))
 
     def initialize(@ctx : Context, store : Sync::Shared(Hash(String, Impl))? = nil)
@@ -26,7 +26,7 @@ module Cordis
       @store.shared do |hash|
         impl = hash[key]?
         return nil unless impl
-        return nil if strict && impl.node.state != NodeState::ACTIVE
+        return nil if strict && impl.node.state != LifecycleNode::State::ACTIVE
         impl.value
       end
     end
@@ -45,7 +45,7 @@ module Cordis
 
       @store.lock do |hash|
         if hash.has_key?(key)
-          raise DuplicateServiceError.new("Service already registered")
+          raise Errors::DuplicateService.new("Service already registered")
         end
         hash[key] = impl
       end
@@ -61,11 +61,11 @@ module Cordis
 
     def set(name : String, value : Injectable) : Nil
       key = @ctx.resolve_isolate(name)
-      raise ServiceNotProvidedError.new("Cannot set property without provide") unless key
+      raise Errors::ServiceNotProvided.new("Cannot set property without provide") unless key
 
       @store.lock do |hash|
         impl = hash[key]?
-        raise ServiceNotProvidedError.new("Cannot set property without provide") unless impl
+        raise Errors::ServiceNotProvided.new("Cannot set property without provide") unless impl
         impl.value = value
       end
 

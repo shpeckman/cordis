@@ -2,46 +2,46 @@
 require "log"
 
 module Cordis
-  enum LoggerLevel
-    ERROR = 0
-    WARN  = 1
-    INFO  = 2
-    DEBUG = 3
-  end
-
   class LoggerService
+    enum Level
+      ERROR = 0
+      WARN  = 1
+      INFO  = 2
+      DEBUG = 3
+    end
+
     def initialize(@ctx : Context)
     end
 
-    def level : LoggerLevel
-      configured_level || LoggerLevel::DEBUG
+    def level : Level
+      configured_level || Level::DEBUG
     end
 
     def error(msg : String) : Nil
-      return unless enabled?(LoggerLevel::ERROR)
+      return unless enabled?(Level::ERROR)
       Log.error { msg }
     end
 
     def warn(msg : String) : Nil
-      return unless enabled?(LoggerLevel::WARN)
+      return unless enabled?(Level::WARN)
       Log.warn { msg }
     end
 
     def info(msg : String) : Nil
-      return unless enabled?(LoggerLevel::INFO)
+      return unless enabled?(Level::INFO)
       Log.info { msg }
     end
 
     def debug(msg : String) : Nil
-      return unless enabled?(LoggerLevel::DEBUG)
+      return unless enabled?(Level::DEBUG)
       Log.debug { msg }
     end
 
-    private def enabled?(required : LoggerLevel) : Bool
+    private def enabled?(required : Level) : Bool
       level.value >= required.value
     end
 
-    private def configured_level : LoggerLevel?
+    private def configured_level : Level?
       case value = @ctx.resolve_intercept("logger")
       when String
         parse_level(value)
@@ -59,16 +59,16 @@ module Cordis
       end
     end
 
-    private def parse_level(value : String) : LoggerLevel?
+    private def parse_level(value : String) : Level?
       case value.downcase
       when "error"
-        LoggerLevel::ERROR
+        Level::ERROR
       when "warn", "warning"
-        LoggerLevel::WARN
+        Level::WARN
       when "info"
-        LoggerLevel::INFO
+        Level::INFO
       when "debug"
-        LoggerLevel::DEBUG
+        Level::DEBUG
       else
         nil
       end

@@ -5,7 +5,7 @@ module Cordis
       def {{name.id}} : {{type.id}}
         result = self.reflect.get({{name.id.stringify}}, strict: true)
         if result.nil?
-          raise ::Cordis::ServiceNotInjectedError.new("Service not injected or inactive: " + {{name.id.stringify}})
+          raise ::Cordis::Errors::ServiceNotInjected.new("Service not injected or inactive: " + {{name.id.stringify}})
         end
         result.as({{type.id}})
       end

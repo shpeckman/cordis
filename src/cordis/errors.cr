@@ -1,37 +1,39 @@
 # src/cordis/errors.cr
 module Cordis
-  class Error < Exception
-  end
-
-  class ServiceNotFoundError < Error
-  end
-
-  class ServiceNotInjectedError < Error
-  end
-
-  class DuplicateServiceError < Error
-  end
-
-  class ServiceNotProvidedError < Error
-  end
-
-  class DependencyTimeoutError < Error
-  end
-
-  class HookExecutionError < Error
-  end
-
-  class AggregateHookError < Error
-    getter errors : Array(Exception)
-
-    def initialize(@errors : Array(Exception))
-      super("AggregateError: #{errors.map(&.message).join(", ")}")
+  module Errors
+    class Error < Exception
     end
-  end
 
-  class LifecycleError < Error
-  end
+    class ServiceNotFound < Error
+    end
 
-  class DisposedError < LifecycleError
+    class ServiceNotInjected < Error
+    end
+
+    class DuplicateService < Error
+    end
+
+    class ServiceNotProvided < Error
+    end
+
+    class DependencyTimeout < Error
+    end
+
+    class HookExecution < Error
+    end
+
+    class AggregateHook < Error
+      getter errors : Array(Exception)
+
+      def initialize(@errors : Array(Exception))
+        super("AggregateError: #{errors.map(&.message).join(", ")}")
+      end
+    end
+
+    class Lifecycle < Error
+    end
+
+    class Disposed < Lifecycle
+    end
   end
 end

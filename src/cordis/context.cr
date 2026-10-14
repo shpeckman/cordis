@@ -80,7 +80,7 @@ class Cordis::Context
 
   def service(name : String) : Injectable
     result = reflect.get(name, strict: true)
-    raise ServiceNotInjectedError.new("Service not injected: " + name) if result.nil?
+    raise Errors::ServiceNotInjected.new("Service not injected: " + name) if result.nil?
     result
   end
 
@@ -100,7 +100,7 @@ class Cordis::Context
     if reflect.get({{call.name.stringify}})
       reflect.get({{call.name.stringify}})
     else
-      raise ::Cordis::ServiceNotInjectedError.new("Service not injected: " + {{call.name.stringify}})
+      raise ::Cordis::Errors::ServiceNotInjected.new("Service not injected: " + {{call.name.stringify}})
     end
   end
 end

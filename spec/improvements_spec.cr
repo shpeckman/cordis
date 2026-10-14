@@ -12,15 +12,15 @@ describe "Cordis improvements" do
     ctx = Cordis::Context.new
     svc = ImprovementService.new(ctx)
 
-    expect_raises(Cordis::DuplicateServiceError, "Service already registered") do
+    expect_raises(Cordis::Errors::DuplicateService, "Service already registered") do
       ctx.reflect.provide("improvement", svc)
     end
 
-    expect_raises(Cordis::ServiceNotProvidedError, "Cannot set property without provide") do
+    expect_raises(Cordis::Errors::ServiceNotProvided, "Cannot set property without provide") do
       ctx.reflect.set("missing", svc)
     end
 
-    expect_raises(Cordis::ServiceNotInjectedError, "Service not injected: missing") do
+    expect_raises(Cordis::Errors::ServiceNotInjected, "Service not injected: missing") do
       ctx.service("missing")
     end
   end
@@ -80,7 +80,7 @@ describe "Cordis improvements" do
       nil
     end
 
-    expect_raises(Cordis::AggregateHookError, /TimeoutError/) do
+    expect_raises(Cordis::Errors::AggregateHook, /TimeoutError/) do
       ctx.events.parallel("slow_parallel", Array(Cordis::Any).new, 10.milliseconds)
     end
 
@@ -95,7 +95,7 @@ describe "Cordis improvements" do
     ctx = Cordis::Context.new
     ctx.events.shutdown
 
-    expect_raises(Cordis::DisposedError, "EventsService is shut down") do
+    expect_raises(Cordis::Errors::Disposed, "EventsService is shut down") do
       ctx.events.background("after_shutdown")
     end
   end
@@ -123,7 +123,7 @@ describe "Cordis improvements" do
     node.disposed?.should be_true
     node.dispose_reason.should eq("test shutdown")
 
-    expect_raises(Cordis::DisposedError) do
+    expect_raises(Cordis::Errors::Disposed) do
       node.effect { -> { nil } }
     end
   end
@@ -132,7 +132,7 @@ describe "Cordis improvements" do
     ctx   = Cordis::Context.new
     child = ctx.intercept("logger", "error".as(Cordis::Any))
 
-    child.logger.level.should eq(Cordis::LoggerLevel::ERROR)
-    ctx.logger.level.should eq(Cordis::LoggerLevel::DEBUG)
+    child.logger.level.should eq(Cordis::LoggerService::Level::ERROR)
+    ctx.logger.level.should eq(Cordis::LoggerService::Level::DEBUG)
   end
 end

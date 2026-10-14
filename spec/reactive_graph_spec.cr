@@ -34,21 +34,21 @@ describe "Reactive Dependency Graph" do
 
     # NeedsDatabase injected "database" but it doesn't exist yet, so node sits in PENDING
     sleep 20.milliseconds
-    svc.ctx.node.state.should eq(Cordis::NodeState::PENDING)
+    svc.ctx.node.state.should eq(Cordis::LifecycleNode::State::PENDING)
     svc.initialized_effect.should be_false
 
     # Fulfilling the dependency should awaken the node reactively
     db = BaseDatabase.new(app)
     sleep 20.milliseconds
 
-    svc.ctx.node.state.should eq(Cordis::NodeState::ACTIVE)
+    svc.ctx.node.state.should eq(Cordis::LifecycleNode::State::ACTIVE)
     svc.initialized_effect.should be_true
 
     # Removing/Disposing the dependency should safely suspend the node again
     db.ctx.node.dispose
     sleep 20.milliseconds
 
-    svc.ctx.node.state.should eq(Cordis::NodeState::SUSPENDED)
+    svc.ctx.node.state.should eq(Cordis::LifecycleNode::State::SUSPENDED)
     svc.initialized_effect.should be_false
   end
 end
